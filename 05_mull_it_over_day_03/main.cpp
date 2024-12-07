@@ -34,11 +34,74 @@ vector<string> *splitLineByWord(const string &line, const string &delimiter) {
     return words;
 }
 
+vector<string> *splitIntoTwo(const string &word, const string &delimiter) {
+    vector<string> *words = new vector<string>();
+
+    size_t start = 0;
+    size_t end = word.find(delimiter);
+
+    if (end != string::npos) {
+        words->push_back(word.substr(start, end - start));
+        words->push_back(word.substr(end + delimiter.length()));
+    } else {
+        words->push_back(word);
+        words->push_back("");
+    }
+    return words;
+
+}
+
 // https://stackoverflow.com/a/4654718/4379563
 bool isInteger(const std::string &s) {
     std::string::const_iterator it = s.begin();
     while (it != s.end() && std::isdigit(*it)) ++it;
     return !s.empty() && it == s.end();
+}
+
+int calculateLine(string &s) {
+    int total = 0;
+    vector<string> *splittedWords = splitLineByWord(s, "mul(");
+    for (const auto &splittedWord: *splittedWords) {
+        vector<string> *rest = splitLineByWord(splittedWord, ")");
+        string inParenthesis = rest->at(0);
+
+        vector<string> *nums = splitLineByWord(inParenthesis, ",");
+        if (nums->size() != 2) {
+            continue;
+        }
+        // check if string is number
+        if (!isInteger(nums->at(0)) || !isInteger(nums->at(1))) {
+            continue;
+        }
+        int first = stoi(nums->at(0));
+        int second = stoi(nums->at(1));
+        cout << first << " * " << second << " = " << first * second << endl;
+        total += first * second;
+        delete rest;
+        delete nums;
+    }
+    return total;
+}
+
+int calculateSection(string &s) {
+    int total = 0;
+    vector<string> *dividedByDont = splitIntoTwo(s, "don't()");
+    string first = dividedByDont->at(0);
+    string second = dividedByDont->at(1);
+    delete dividedByDont;
+    if (!first.empty()) {
+        int firstValue = calculateLine(first);
+        total += firstValue;
+        vector<string> *dividedByDo = splitIntoTwo(second, "do()");
+        string newSecond = dividedByDo->at(1);
+        delete dividedByDo;
+        if (!newSecond.empty()) {
+            total += calculateSection(newSecond);
+        }
+    } else {
+        total += 0;
+    }
+    return total;
 }
 
 int main() {
@@ -53,33 +116,12 @@ int main() {
 
     // string variable to store the data
     string s;
+    string allString;
     // read each line and print to std output stream
-    vector<int> *words;
-    int total = 0;
     while (getline(f, s)) {
-        vector<string> *splittedWords = splitLineByWord(s, "mul(");
-        for (const auto &splittedWord: *splittedWords) {
-            vector<string> *rest = splitLineByWord(splittedWord, ")");
-            string inParenthesis = rest->at(0);
-
-            vector<string> *nums = splitLineByWord(inParenthesis, ",");
-            if (nums->size() != 2) {
-                continue;
-            }
-            // check if string is number
-            if (!isInteger(nums->at(0)) || !isInteger(nums->at(1))) {
-                continue;
-            }
-            int first = stoi(nums->at(0));
-            int second = stoi(nums->at(1));
-            cout << first << " * " << second << " = " << first * second << endl;
-            total += first * second;
-            delete rest;
-            delete nums;
-        }
-        delete splittedWords;
-
+        allString += s;
     }
+    int total = calculateSection(allString);
     cout << "total: " << total;
 
     f.close();
